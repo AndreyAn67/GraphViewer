@@ -56,7 +56,7 @@ class GridPresetPicker(QWidget):
     @staticmethod
     def _label(text: str) -> QLabel:
         l = QLabel(text)
-        l.setStyleSheet("color: #8b91a8; font-size: 11px; letter-spacing: 0.04em;")
+        l.setObjectName("ToolbarLabel")
         return l
 
     def _make_handler(self, rows: int, cols: int):

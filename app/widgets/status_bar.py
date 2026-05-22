@@ -22,7 +22,7 @@ class StatusBar(QStatusBar):
     @staticmethod
     def _make_sep() -> QLabel:
         s = QLabel("|")
-        s.setStyleSheet("color: #363a47; padding: 0 4px;")
+        s.setObjectName("StatusSep")
         return s
 
     def set_path(self, text: str) -> None:
@@ -37,5 +37,9 @@ class StatusBar(QStatusBar):
         else:
             self._zoom.setText(f"缩放 {percent:.0f}%")
 
-    def set_theme(self, name: str) -> None:
-        self._theme.setText("深色" if name == "dark" else "浅色")
+    def set_theme(self, resolved: str, mode: str | None = None) -> None:
+        resolved_label = "深色" if resolved == "dark" else "浅色"
+        if mode == "system":
+            self._theme.setText(f"跟随系统 ({resolved_label})")
+        else:
+            self._theme.setText(resolved_label)

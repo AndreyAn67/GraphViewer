@@ -57,17 +57,19 @@ class MainWindow(QMainWindow):
         # ---- Status bar ----
         self._status = StatusBar(self)
         self.setStatusBar(self._status)
-        self._status.set_theme(theme.current)
+        self._status.set_theme(theme.current, theme.mode)
+        self.top_bar.set_theme_mode(theme.mode)
 
         # ---- Wire signals ----
         self.top_bar.modeChanged.connect(self._switch_mode)
         self.top_bar.refreshRequested.connect(self._refresh_library)
-        self.top_bar.themeToggleRequested.connect(self._toggle_theme)
+        self.top_bar.themeModeRequested.connect(self._theme.set_mode)
 
         for view in (self.view_single, self.view_grid, self.view_free):
             view.statusChanged.connect(self._on_status)
 
-        theme.themeChanged.connect(self._status.set_theme)
+        theme.themeChanged.connect(self._on_theme_changed)
+        theme.modeChanged.connect(self._on_theme_mode_changed)
 
         # ---- Shortcuts ----
         QShortcut(QKeySequence("Ctrl+1"), self, lambda: self._switch_mode(ViewMode.SINGLE))
@@ -101,6 +103,13 @@ class MainWindow(QMainWindow):
 
     def _toggle_theme(self) -> None:
         self._theme.toggle()
+
+    def _on_theme_changed(self, resolved: str) -> None:
+        self._status.set_theme(resolved, self._theme.mode)
+
+    def _on_theme_mode_changed(self, mode: str) -> None:
+        self.top_bar.set_theme_mode(mode)
+        self._status.set_theme(self._theme.current, mode)
 
     def _on_status(self, path: str, count: int, zoom: float) -> None:
         self._status.set_path(path)

@@ -48,7 +48,7 @@ class FreeView(QWidget):
         tl.addWidget(self.btn_add)
         tl.addStretch(1)
         hint = QLabel("拖动面板间分割线调整大小  ·  点击 × 关闭面板")
-        hint.setStyleSheet("color: #4a4f60; font-size: 11px;")
+        hint.setObjectName("ToolbarHint")
         tl.addWidget(hint)
         outer.addWidget(toolbar)
 
@@ -61,7 +61,7 @@ class FreeView(QWidget):
         inner.addWidget(self.filter_panel)
 
         self._splitter = QSplitter(Qt.Orientation.Horizontal)
-        self._splitter.setStyleSheet("QSplitter { background-color: #0f1117; }")
+        self._splitter.setObjectName("FreeSplitter")
         self._splitter.setHandleWidth(4)
         inner.addWidget(self._splitter, 1)
 

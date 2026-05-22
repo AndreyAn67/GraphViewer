@@ -152,10 +152,6 @@ class FilterPanel(QWidget):
         # Bottom action bar
         bar = QFrame()
         bar.setObjectName("FilterFooter")
-        bar.setStyleSheet(
-            "QFrame#FilterFooter { background-color: #181b23;"
-            " border-top: 1px solid #2a2d37; }"
-        )
         bar_l = QHBoxLayout(bar)
         bar_l.setContentsMargins(12, 10, 12, 12)
         bar_l.setSpacing(8)

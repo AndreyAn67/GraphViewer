@@ -54,24 +54,14 @@ class ImageCard(QFrame):
         h.addWidget(self._zoom_label)
 
         self._btn_fit = QPushButton("适应")
-        self._btn_fit.setObjectName("IconButton")
+        self._btn_fit.setObjectName("CardActionButton")
         self._btn_fit.setFixedSize(40, 24)
-        self._btn_fit.setStyleSheet(
-            "QPushButton { background: transparent; border: none;"
-            " color: #8b91a8; font-size: 11px; border-radius: 4px; }"
-            "QPushButton:hover { background: #20242f; color: #e8eaf0; }"
-        )
         h.addWidget(self._btn_fit)
 
         if closable:
             self._btn_close = QPushButton("×")
-            self._btn_close.setObjectName("IconButton")
+            self._btn_close.setObjectName("CardCloseButton")
             self._btn_close.setFixedSize(24, 24)
-            self._btn_close.setStyleSheet(
-                "QPushButton { background: transparent; border: none;"
-                " color: #8b91a8; font-size: 18px; border-radius: 4px; }"
-                "QPushButton:hover { background: #20242f; color: #e05c5c; }"
-            )
             self._btn_close.clicked.connect(lambda: self.closed.emit(self))
             h.addWidget(self._btn_close)
 

@@ -67,7 +67,7 @@ class GridView(QWidget):
         inner.addWidget(self.filter_panel)
 
         self._grid_host = QWidget()
-        self._grid_host.setStyleSheet("background-color: #0f1117;")
+        self._grid_host.setObjectName("GridHost")
         self._grid = QGridLayout(self._grid_host)
         self._grid.setContentsMargins(12, 12, 12, 12)
         self._grid.setSpacing(8)
