@@ -10,6 +10,8 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.i18n import Translator
+
 
 class ViewMode(str, Enum):
     SINGLE = "single"
@@ -20,21 +22,18 @@ class ViewMode(str, Enum):
 class ModeSwitcher(QWidget):
     modeChanged = Signal(ViewMode)
 
-    def __init__(self, parent=None) -> None:
+    def __init__(self, translator: Translator, parent=None) -> None:
         super().__init__(parent)
         self.setObjectName("ModeSwitch")
+        self._i18n = translator
         h = QHBoxLayout(self)
         h.setContentsMargins(2, 2, 2, 2)
         h.setSpacing(2)
         self._group = QButtonGroup(self)
         self._group.setExclusive(True)
         self._buttons: dict[ViewMode, QPushButton] = {}
-        for mode, label in [
-            (ViewMode.SINGLE, "单图"),
-            (ViewMode.GRID, "网格对比"),
-            (ViewMode.FREE, "自由对比"),
-        ]:
-            btn = QPushButton(label)
+        for mode in (ViewMode.SINGLE, ViewMode.GRID, ViewMode.FREE):
+            btn = QPushButton("")
             btn.setObjectName("ModeSwitchTab")
             btn.setCheckable(True)
             self._group.addButton(btn)
@@ -42,6 +41,9 @@ class ModeSwitcher(QWidget):
             self._buttons[mode] = btn
             btn.toggled.connect(self._make_handler(mode))
         self._buttons[ViewMode.SINGLE].setChecked(True)
+
+        self._i18n.languageChanged.connect(self.retranslate)
+        self.retranslate()
 
     def _make_handler(self, mode: ViewMode):
         def handler(checked: bool) -> None:
@@ -51,3 +53,7 @@ class ModeSwitcher(QWidget):
 
     def set_mode(self, mode: ViewMode) -> None:
         self._buttons[mode].setChecked(True)
+
+    def retranslate(self) -> None:
+        for mode, btn in self._buttons.items():
+            btn.setText(self._i18n.tr(f"mode.{mode.value}"))

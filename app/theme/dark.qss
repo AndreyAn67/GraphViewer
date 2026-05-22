@@ -66,6 +66,11 @@ QLabel#AppVersion {
     font-size: 11px;
     padding-left: 6px;
 }
+QLabel#AppAuthor {
+    color: #8b91a8;
+    font-size: 11px;
+    padding-left: 6px;
+}
 
 QPushButton#IconButton, QToolButton#IconButton {
     background: transparent;

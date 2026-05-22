@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 
 from app.core.filter_engine import resolve_single
 from app.core.models import Library
+from app.i18n import Translator
 from app.widgets.filter_panel import FilterPanel
 from app.widgets.image_card import ImageCard
 
@@ -26,9 +27,10 @@ class FreeView(QWidget):
 
     statusChanged = Signal(str, int, float)
 
-    def __init__(self, library: Library, parent=None) -> None:
+    def __init__(self, library: Library, translator: Translator, parent=None) -> None:
         super().__init__(parent)
         self._library = library
+        self._i18n = translator
         self._cards: list[ImageCard] = []
         self._selected_index: int = 0
 
@@ -42,21 +44,21 @@ class FreeView(QWidget):
         tl = QHBoxLayout(toolbar)
         tl.setContentsMargins(16, 6, 16, 6)
         tl.setSpacing(8)
-        self.btn_add = QPushButton("+ 新增面板")
+        self.btn_add = QPushButton("")
         self.btn_add.setObjectName("GhostButton")
         self.btn_add.setFixedHeight(28)
         tl.addWidget(self.btn_add)
         tl.addStretch(1)
-        hint = QLabel("拖动面板间分割线调整大小  ·  点击 × 关闭面板")
-        hint.setObjectName("ToolbarHint")
-        tl.addWidget(hint)
+        self._hint = QLabel("")
+        self._hint.setObjectName("ToolbarHint")
+        tl.addWidget(self._hint)
         outer.addWidget(toolbar)
 
         inner = QHBoxLayout()
         inner.setContentsMargins(0, 0, 0, 0)
         inner.setSpacing(0)
 
-        self.filter_panel = FilterPanel()
+        self.filter_panel = FilterPanel(self._i18n)
         self.filter_panel.set_library(library)
         inner.addWidget(self.filter_panel)
 
@@ -73,6 +75,9 @@ class FreeView(QWidget):
             lambda: self.filter_panel.set_library(self._library)
         )
 
+        self._i18n.languageChanged.connect(self.retranslate)
+        self.retranslate()
+
         self._add_card()
         self._add_card()
 
@@ -83,11 +88,13 @@ class FreeView(QWidget):
             c.show_empty()
 
     def _add_card(self) -> None:
-        card = ImageCard(closable=True)
+        card = ImageCard(closable=True, translator=self._i18n)
         card.closed.connect(self._remove_card)
         card.clicked.connect(lambda src=card: self._select_card(src))
         card.zoomChanged.connect(
-            lambda z: self.statusChanged.emit("自由模式", len(self._cards), z)
+            lambda z: self.statusChanged.emit(
+                self._i18n.tr("view.free.title"), len(self._cards), z
+            )
         )
         self._splitter.addWidget(card)
         self._cards.append(card)
@@ -97,7 +104,7 @@ class FreeView(QWidget):
         self._splitter.setSizes([total // n] * n)
         self._selected_index = len(self._cards) - 1
         self._refresh_selection()
-        self.statusChanged.emit("自由模式", len(self._cards), 0)
+        self._emit_status()
 
     def _remove_card(self, card: ImageCard) -> None:
         if len(self._cards) <= 1:
@@ -107,7 +114,7 @@ class FreeView(QWidget):
         card.deleteLater()
         self._selected_index = min(self._selected_index, len(self._cards) - 1)
         self._refresh_selection()
-        self.statusChanged.emit("自由模式", len(self._cards), 0)
+        self._emit_status()
 
     def _select_card(self, card: ImageCard) -> None:
         if card in self._cards:
@@ -125,6 +132,16 @@ class FreeView(QWidget):
         entry = resolve_single(self._library, sel)
         card = self._cards[self._selected_index]
         if entry is None:
-            card.show_empty("无匹配图像")
+            card.show_empty("view.no_match_short")
         else:
-            card.show_image(entry.path, entry.breadcrumb())
+            card.show_image(entry.path, entry)
+
+    def _emit_status(self) -> None:
+        self.statusChanged.emit(
+            self._i18n.tr("view.free.title"), len(self._cards), 0
+        )
+
+    def retranslate(self) -> None:
+        self.btn_add.setText(self._i18n.tr("view.free.add_panel"))
+        self._hint.setText(self._i18n.tr("view.free.drag_hint"))
+        self._emit_status()

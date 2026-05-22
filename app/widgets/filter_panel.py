@@ -21,6 +21,7 @@ from app.core.models import (
     ParameterSelection,
     Polarization,
 )
+from app.i18n import Translator
 from app.widgets.filter_chip import FilterChip
 
 
@@ -78,6 +79,10 @@ class _ChipGroup(QWidget):
         if self._chips:
             self._chips[0][0].setChecked(True)
 
+    def relabel(self, label_for_value) -> None:
+        for chip, value in self._chips:
+            chip.setText(label_for_value(value))
+
 
 class FilterPanel(QWidget):
     """Left-hand parameter panel for the Single-image view.
@@ -90,11 +95,14 @@ class FilterPanel(QWidget):
     applyRequested = Signal()
     resetRequested = Signal()
 
-    def __init__(self, parent=None) -> None:
+    def __init__(self, translator: Translator, parent=None) -> None:
         super().__init__(parent)
         self.setObjectName("FilterPanel")
         self.setFixedWidth(264)
+        self._i18n = translator
         self._library: Library | None = None
+        # Section title labels keyed by catalog key, for retranslation.
+        self._section_titles: dict[str, QLabel] = {}
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -112,38 +120,31 @@ class FilterPanel(QWidget):
         v.setContentsMargins(16, 16, 16, 16)
         v.setSpacing(14)
 
-        # Section: 激光雷达型号
-        v.addWidget(self._section_title("激光雷达型号  ·  LIDAR"))
+        v.addWidget(self._section_title("filter.section.lidar"))
         self.cmb_lidar = QComboBox()
         v.addWidget(self.cmb_lidar)
 
-        # Section: 云类型
-        v.addWidget(self._section_title("云类型  ·  CLOUD"))
+        v.addWidget(self._section_title("filter.section.cloud"))
         self.cmb_cloud = QComboBox()
         v.addWidget(self.cmb_cloud)
 
-        # Section: 偏振方式
-        v.addWidget(self._section_title("偏振方式  ·  POLARIZATION"))
+        v.addWidget(self._section_title("filter.section.polarization"))
         self.chips_pol = _ChipGroup()
         v.addWidget(self.chips_pol)
 
-        # Section: 计算方法
-        v.addWidget(self._section_title("计算方法  ·  METHOD"))
+        v.addWidget(self._section_title("filter.section.method"))
         self.chips_method = _ChipGroup()
         v.addWidget(self.chips_method)
 
-        # Section: 云层厚度
-        v.addWidget(self._section_title("云层厚度  ·  THICKNESS"))
+        v.addWidget(self._section_title("filter.section.thickness"))
         self.chips_thickness = _ChipGroup()
         v.addWidget(self.chips_thickness)
 
-        # Section: rFOV
-        v.addWidget(self._section_title("接收视场角  ·  rFOV"))
+        v.addWidget(self._section_title("filter.section.rfov"))
         self.cmb_rfov = QComboBox()
         v.addWidget(self.cmb_rfov)
 
-        # Section: 数据类型
-        v.addWidget(self._section_title("数据类型  ·  DATA TYPE"))
+        v.addWidget(self._section_title("filter.section.data_type"))
         self.chips_datatype = _ChipGroup()
         v.addWidget(self.chips_datatype)
 
@@ -155,9 +156,9 @@ class FilterPanel(QWidget):
         bar_l = QHBoxLayout(bar)
         bar_l.setContentsMargins(12, 10, 12, 12)
         bar_l.setSpacing(8)
-        self.btn_reset = QPushButton("重置")
+        self.btn_reset = QPushButton("")
         self.btn_reset.setObjectName("GhostButton")
-        self.btn_apply = QPushButton("应用筛选")
+        self.btn_apply = QPushButton("")
         self.btn_apply.setObjectName("AccentButton")
         bar_l.addWidget(self.btn_reset)
         bar_l.addWidget(self.btn_apply, 1)
@@ -182,11 +183,14 @@ class FilterPanel(QWidget):
         # collapses Method/rFOV to single defaults.
         self.chips_pol.selected.connect(lambda *_: self._refresh_dependents())
 
-    @staticmethod
-    def _section_title(text: str) -> QLabel:
-        lbl = QLabel(text)
+        self._i18n.languageChanged.connect(self.retranslate)
+        self.retranslate()
+
+    def _section_title(self, key: str) -> QLabel:
+        lbl = QLabel("")
         lbl.setObjectName("FilterSectionTitle")
         lbl.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        self._section_titles[key] = lbl
         return lbl
 
     # ---- public API ----
@@ -205,10 +209,10 @@ class FilterPanel(QWidget):
         self.cmb_cloud.blockSignals(False)
 
         self.chips_pol.set_options(
-            [(p.label_cn, p) for p in library.polarizations]
+            [(self._i18n.tr(p.label_key), p) for p in library.polarizations]
         )
         self.chips_method.set_options(
-            [(m.label_cn, m) for m in library.methods]
+            [(self._i18n.tr(m.label_key), m) for m in library.methods]
         )
         self.chips_thickness.set_options(
             [(f"{t}m", t) for t in library.thicknesses]
@@ -217,11 +221,12 @@ class FilterPanel(QWidget):
         self.cmb_rfov.blockSignals(True)
         self.cmb_rfov.clear()
         for r in library.rfovs:
-            self.cmb_rfov.addItem("默认" if r == DEFAULT_RFOV else r, r)
+            label = self._i18n.tr("enum.rfov.default") if r == DEFAULT_RFOV else r
+            self.cmb_rfov.addItem(label, r)
         self.cmb_rfov.blockSignals(False)
 
         self.chips_datatype.set_options(
-            [(d.label_cn, d) for d in library.data_types]
+            [(self._i18n.tr(d.label_key), d) for d in library.data_types]
         )
 
         # chips_pol.first() will trigger _refresh_dependents which initializes
@@ -255,12 +260,17 @@ class FilterPanel(QWidget):
             grp.blockSignals(True)
         self.cmb_rfov.blockSignals(True)
 
-        self.chips_method.set_options([(m.label_cn, m) for m in methods])
+        self.chips_method.set_options(
+            [(self._i18n.tr(m.label_key), m) for m in methods]
+        )
         self.chips_thickness.set_options([(f"{t}m", t) for t in thicknesses])
         self.cmb_rfov.clear()
         for r in rfovs:
-            self.cmb_rfov.addItem("默认" if r == DEFAULT_RFOV else r, r)
-        self.chips_datatype.set_options([(d.label_cn, d) for d in dtypes])
+            label = self._i18n.tr("enum.rfov.default") if r == DEFAULT_RFOV else r
+            self.cmb_rfov.addItem(label, r)
+        self.chips_datatype.set_options(
+            [(self._i18n.tr(d.label_key), d) for d in dtypes]
+        )
 
         self.chips_method.first()
         self.chips_thickness.first()
@@ -272,6 +282,22 @@ class FilterPanel(QWidget):
 
         # Emit a single coalesced change notification for the whole cascade.
         self.selectionChanged.emit()
+
+    def retranslate(self) -> None:
+        for key, lbl in self._section_titles.items():
+            lbl.setText(self._i18n.tr(key))
+        self.btn_reset.setText(self._i18n.tr("filter.reset"))
+        self.btn_apply.setText(self._i18n.tr("filter.apply"))
+        # Relabel chips in place to avoid widget churn + selection loss.
+        self.chips_pol.relabel(lambda v: self._i18n.tr(v.label_key))
+        self.chips_method.relabel(lambda v: self._i18n.tr(v.label_key))
+        self.chips_thickness.relabel(lambda v: f"{v}m")
+        self.chips_datatype.relabel(lambda v: self._i18n.tr(v.label_key))
+        # rFOV combo items: walk and rewrite the display text for DEFAULT.
+        for i in range(self.cmb_rfov.count()):
+            r = self.cmb_rfov.itemData(i)
+            label = self._i18n.tr("enum.rfov.default") if r == DEFAULT_RFOV else r
+            self.cmb_rfov.setItemText(i, label)
 
     def current(self) -> ParameterSelection:
         return ParameterSelection(

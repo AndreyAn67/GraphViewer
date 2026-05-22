@@ -1,20 +1,16 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QGridLayout,
+    QHBoxLayout,
     QVBoxLayout,
     QWidget,
 )
 
 from app.core.filter_engine import resolve_single
-from app.core.models import (
-    DataType,
-    Library,
-    Method,
-    ParameterSelection,
-    Polarization,
-)
+from app.core.models import Library
+from app.i18n import Translator
 from app.widgets.filter_panel import FilterPanel
 from app.widgets.grid_preset_picker import GridPresetPicker
 from app.widgets.image_card import ImageCard
@@ -31,19 +27,22 @@ class GridView(QWidget):
 
     statusChanged = Signal(str, int, float)
 
-    def __init__(self, library: Library, parent=None) -> None:
+    def __init__(self, library: Library, translator: Translator, parent=None) -> None:
         super().__init__(parent)
         self._library = library
+        self._i18n = translator
         self._cells: list[ImageCard] = []
         self._selected_index: int = 0
         self._sync_zoom = True
         self._syncing_zoom = False
+        self._last_rows: int = 2
+        self._last_cols: int = 2
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
         outer.setSpacing(0)
 
-        self.preset = GridPresetPicker()
+        self.preset = GridPresetPicker(self._i18n)
         outer.addWidget(self.preset)
 
         body = QWidget()
@@ -55,14 +54,11 @@ class GridView(QWidget):
         h = QVBoxLayout(content)
         h.setContentsMargins(0, 0, 0, 0)
 
-        # Inner layout: filter panel + grid area
-        from PySide6.QtWidgets import QHBoxLayout
-
         inner = QHBoxLayout()
         inner.setContentsMargins(0, 0, 0, 0)
         inner.setSpacing(0)
 
-        self.filter_panel = FilterPanel()
+        self.filter_panel = FilterPanel(self._i18n)
         self.filter_panel.set_library(library)
         inner.addWidget(self.filter_panel)
 
@@ -80,6 +76,8 @@ class GridView(QWidget):
         self.preset.syncZoomChanged.connect(self._on_sync_changed)
         self.filter_panel.applyRequested.connect(self._on_apply_current)
         self.filter_panel.resetRequested.connect(self._on_reset)
+
+        self._i18n.languageChanged.connect(self.retranslate)
 
         self.set_grid(2, 2)
 
@@ -100,9 +98,12 @@ class GridView(QWidget):
                 w.deleteLater()
         self._cells.clear()
 
+        self._last_rows = rows
+        self._last_cols = cols
+
         for r in range(rows):
             for c in range(cols):
-                card = ImageCard(closable=False)
+                card = ImageCard(closable=False, translator=self._i18n)
                 self._grid.addWidget(card, r, c)
                 self._cells.append(card)
                 card.viewer.zoomChanged.connect(
@@ -114,9 +115,15 @@ class GridView(QWidget):
 
         self._selected_index = 0
         self._refresh_selection()
-        self.statusChanged.emit(f"{rows}×{cols} 网格", len(self._cells), 0)
+        self._emit_grid_status()
 
     # ---- internals ----
+
+    def _emit_grid_status(self) -> None:
+        label = self._i18n.tr(
+            "view.grid_label", rows=self._last_rows, cols=self._last_cols
+        )
+        self.statusChanged.emit(label, len(self._cells), 0)
 
     def _select_card(self, card: ImageCard) -> None:
         if card in self._cells:
@@ -134,9 +141,9 @@ class GridView(QWidget):
         entry = resolve_single(self._library, sel)
         card = self._cells[self._selected_index]
         if entry is None:
-            card.show_empty("无匹配图像")
+            card.show_empty("view.no_match_short")
         else:
-            card.show_image(entry.path, entry.breadcrumb())
+            card.show_image(entry.path, entry)
 
     def _on_reset(self) -> None:
         self.filter_panel.set_library(self._library)
@@ -155,3 +162,6 @@ class GridView(QWidget):
                 c.viewer.set_scale(percent / 100.0)
         finally:
             self._syncing_zoom = False
+
+    def retranslate(self) -> None:
+        self._emit_grid_status()

@@ -11,12 +11,8 @@ class Polarization(str, Enum):
     NONE = "noPolar"
 
     @property
-    def label_cn(self) -> str:
-        return {
-            Polarization.CIRC: "圆偏振",
-            Polarization.LINEAR: "线偏振",
-            Polarization.NONE: "无偏振",
-        }[self]
+    def label_key(self) -> str:
+        return f"enum.polarization.{self.name}"
 
 
 class Method(str, Enum):
@@ -25,12 +21,8 @@ class Method(str, Enum):
     MIXED = "Mixed"
 
     @property
-    def label_cn(self) -> str:
-        return {
-            Method.STANDARD: "标准",
-            Method.ADAPTIVE: "自适应",
-            Method.MIXED: "混合",
-        }[self]
+    def label_key(self) -> str:
+        return f"enum.method.{self.name}"
 
 
 class DataType(str, Enum):
@@ -42,15 +34,8 @@ class DataType(str, Enum):
     TOTAL_RETURN_SIGNAL = "TotalReturnSignal"  # noPolar only
 
     @property
-    def label_cn(self) -> str:
-        return {
-            DataType.ERROR_TOTAL: "总误差",
-            DataType.IQUV_I: "强度 I",
-            DataType.STOKES_DEPDEG: "退偏度 DoLP",
-            DataType.STOKES_DOP: "偏振度 DoP",
-            DataType.STOKES_PREANG: "偏振角 PreAng",
-            DataType.TOTAL_RETURN_SIGNAL: "总回波信号",
-        }[self]
+    def label_key(self) -> str:
+        return f"enum.data_type.{self.name}"
 
     @property
     def filename(self) -> str:
@@ -70,14 +55,6 @@ class ImageEntry:
     rfov: str
     data_type: DataType
     path: Path
-
-    def breadcrumb(self) -> str:
-        rfov_label = self.rfov if self.rfov != DEFAULT_RFOV else "默认"
-        return (
-            f"{self.lidar} / {self.cloud} / {self.polarization.label_cn} / "
-            f"{self.method.label_cn} {self.thickness_m}m / rFOV={rfov_label} / "
-            f"{self.data_type.label_cn}"
-        )
 
 
 @dataclass
