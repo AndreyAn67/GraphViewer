@@ -4,6 +4,7 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
+    QComboBox,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -49,6 +50,7 @@ class ImageCard(QFrame):
         self._last_entry: ImageEntry | None = None
         self._last_empty_key: str = "card.unselected_dash"
         self._last_failed_name: str = ""
+        self._last_percent: float = 100.0
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -66,13 +68,31 @@ class ImageCard(QFrame):
         self._breadcrumb.setTextInteractionFlags(Qt.TextInteractionFlag.NoTextInteraction)
         h.addWidget(self._breadcrumb, 1)
 
-        self._zoom_label = QLabel("100%")
-        self._zoom_label.setObjectName("CardZoom")
-        h.addWidget(self._zoom_label)
+        self._btn_zoom_out = QPushButton("−")
+        self._btn_zoom_out.setObjectName("CardZoomStep")
+        self._btn_zoom_out.setFixedSize(24, 24)
+        h.addWidget(self._btn_zoom_out)
+
+        self._cmb_zoom = QComboBox()
+        self._cmb_zoom.setObjectName("CardZoomCombo")
+        self._cmb_zoom.setEditable(True)
+        self._cmb_zoom.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        self._cmb_zoom.setFixedWidth(72)
+        self._cmb_zoom.addItems(
+            ["25%", "50%", "75%", "100%", "125%", "150%", "200%", "400%", "800%"]
+        )
+        self._cmb_zoom.setCurrentText("100%")
+        h.addWidget(self._cmb_zoom)
+
+        self._btn_zoom_in = QPushButton("+")
+        self._btn_zoom_in.setObjectName("CardZoomStep")
+        self._btn_zoom_in.setFixedSize(24, 24)
+        h.addWidget(self._btn_zoom_in)
 
         self._btn_fit = QPushButton("")
         self._btn_fit.setObjectName("CardActionButton")
-        self._btn_fit.setFixedSize(40, 24)
+        self._btn_fit.setMinimumWidth(48)
+        self._btn_fit.setFixedHeight(24)
         h.addWidget(self._btn_fit)
 
         if closable:
@@ -113,6 +133,12 @@ class ImageCard(QFrame):
 
         self.viewer.zoomChanged.connect(self._on_zoom_changed)
         self._btn_fit.clicked.connect(self.viewer.fit_to_view)
+        self._btn_zoom_in.clicked.connect(lambda: self.viewer.zoom_step(1.15))
+        self._btn_zoom_out.clicked.connect(lambda: self.viewer.zoom_step(1.0 / 1.15))
+        self._cmb_zoom.activated.connect(self._on_zoom_combo_activated)
+        self._cmb_zoom.lineEdit().editingFinished.connect(self._on_zoom_edit_finished)
+
+        self._set_zoom_controls_enabled(False)
 
         self._i18n.languageChanged.connect(self.retranslate)
         self.retranslate()
@@ -125,6 +151,7 @@ class ImageCard(QFrame):
             self._last_entry = entry
             self._stack.setCurrentWidget(self.viewer)
             self._breadcrumb.setText(format_breadcrumb(entry, self._i18n))
+            self._set_zoom_controls_enabled(True)
         else:
             self._state = "failed"
             self._last_failed_name = path.name
@@ -133,7 +160,7 @@ class ImageCard(QFrame):
             self._breadcrumb.setText(
                 self._i18n.tr("card.load_failed", name=self._last_failed_name)
             )
-            self._zoom_label.setText("—")
+            self._set_zoom_controls_enabled(False)
 
     def show_empty(self, message_key: str | None = None) -> None:
         self._state = "empty"
@@ -142,7 +169,7 @@ class ImageCard(QFrame):
         self.viewer.clear()
         self._stack.setCurrentWidget(self._empty)
         self._breadcrumb.setText(self._i18n.tr(self._last_empty_key))
-        self._zoom_label.setText("—")
+        self._set_zoom_controls_enabled(False)
 
     def set_selected(self, selected: bool) -> None:
         self.setProperty("selected", selected)
@@ -152,6 +179,10 @@ class ImageCard(QFrame):
 
     def retranslate(self) -> None:
         self._btn_fit.setText(self._i18n.tr("card.fit"))
+        self._btn_fit.setToolTip(self._i18n.tr("card.fit_tooltip"))
+        self._btn_zoom_in.setToolTip(self._i18n.tr("card.zoom_in_tooltip"))
+        self._btn_zoom_out.setToolTip(self._i18n.tr("card.zoom_out_tooltip"))
+        self._cmb_zoom.setToolTip(self._i18n.tr("card.zoom_tooltip"))
         self._empty_title.setText(self._i18n.tr("card.unselected_title"))
         self._empty_hint.setText(self._i18n.tr("card.unselected_hint"))
         if self._state == "image" and self._last_entry is not None:
@@ -164,5 +195,56 @@ class ImageCard(QFrame):
             self._breadcrumb.setText(self._i18n.tr(self._last_empty_key))
 
     def _on_zoom_changed(self, percent: float) -> None:
-        self._zoom_label.setText(f"{percent:.0f}%")
+        self._last_percent = percent
+        text = f"{percent:.0f}%"
+        # Block both the combo and its line edit so updating the displayed
+        # value from the viewer doesn't fire activated / editingFinished
+        # back into set_scale (which would cause a feedback loop on every
+        # wheel tick).
+        line = self._cmb_zoom.lineEdit()
+        self._cmb_zoom.blockSignals(True)
+        line.blockSignals(True)
+        try:
+            self._cmb_zoom.setCurrentText(text)
+        finally:
+            line.blockSignals(False)
+            self._cmb_zoom.blockSignals(False)
         self.zoomChanged.emit(percent)
+
+    def _on_zoom_combo_activated(self, index: int) -> None:
+        value = self._parse_zoom_text(self._cmb_zoom.itemText(index))
+        if value is not None:
+            self.viewer.set_scale(value / 100.0)
+
+    def _on_zoom_edit_finished(self) -> None:
+        value = self._parse_zoom_text(self._cmb_zoom.currentText())
+        if value is None:
+            # Restore the last known good text rather than leaving garbage.
+            self._cmb_zoom.lineEdit().setText(f"{self._last_percent:.0f}%")
+            return
+        self.viewer.set_scale(value / 100.0)
+
+    @staticmethod
+    def _parse_zoom_text(text: str) -> float | None:
+        s = text.strip().rstrip("%").strip()
+        if not s:
+            return None
+        try:
+            return float(s)
+        except ValueError:
+            return None
+
+    def _set_zoom_controls_enabled(self, enabled: bool) -> None:
+        self._btn_zoom_in.setEnabled(enabled)
+        self._btn_zoom_out.setEnabled(enabled)
+        self._cmb_zoom.setEnabled(enabled)
+        self._btn_fit.setEnabled(enabled)
+        if not enabled:
+            line = self._cmb_zoom.lineEdit()
+            self._cmb_zoom.blockSignals(True)
+            line.blockSignals(True)
+            try:
+                self._cmb_zoom.setCurrentText("—")
+            finally:
+                line.blockSignals(False)
+                self._cmb_zoom.blockSignals(False)

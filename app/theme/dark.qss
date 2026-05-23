@@ -265,10 +265,39 @@ QLabel#CardBreadcrumb {
     font-family: "JetBrains Mono", "Cascadia Code", "Consolas", monospace;
     font-size: 12px;
 }
-QLabel#CardZoom {
+QPushButton#CardZoomStep {
+    background: transparent;
+    border: none;
+    border-radius: 4px;
     color: #8b91a8;
+    font-size: 13px;
+    font-weight: 600;
+    min-width: 24px; max-width: 24px;
+    min-height: 24px; max-height: 24px;
+    padding: 0;
+}
+QPushButton#CardZoomStep:hover {
+    background: #20242f;
+    color: #e8eaf0;
+}
+QPushButton#CardZoomStep:disabled { color: #4a4f60; }
+
+QComboBox#CardZoomCombo {
+    background: transparent;
+    border: 1px solid #2a2d37;
+    border-radius: 4px;
+    color: #e8eaf0;
     font-family: "JetBrains Mono", "Cascadia Code", "Consolas", monospace;
     font-size: 11px;
+    min-height: 24px;
+    padding: 0 4px;
+}
+QComboBox#CardZoomCombo:hover { border-color: #4a4f60; }
+QComboBox#CardZoomCombo:focus { border-color: #5b8dee; }
+QComboBox#CardZoomCombo::drop-down { width: 14px; border: none; }
+QComboBox#CardZoomCombo:disabled {
+    color: #4a4f60;
+    border-color: #2a2d37;
 }
 
 /* ===== Status Bar ===== */

@@ -41,7 +41,7 @@ class TopBar(QWidget):
         title = QLabel("GraphViewer")
         title.setObjectName("AppTitle")
         h.addWidget(title)
-        version = QLabel("v0.4")
+        version = QLabel("v0.5")
         version.setObjectName("AppVersion")
         h.addWidget(version)
         author = QLabel("by AndreyAn")

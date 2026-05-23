@@ -90,6 +90,13 @@ STRINGS: dict[str, dict[str, str]] = {
         "zh": "加载失败: {name}",
         "ru": "Ошибка загрузки: {name}",
     },
+    "card.zoom_tooltip": {
+        "zh": "缩放百分比 (Enter 确认)",
+        "ru": "Уровень масштаба (Enter — подтвердить)",
+    },
+    "card.zoom_in_tooltip": {"zh": "放大", "ru": "Увеличить"},
+    "card.zoom_out_tooltip": {"zh": "缩小", "ru": "Уменьшить"},
+    "card.fit_tooltip": {"zh": "适应窗口", "ru": "Вписать в окно"},
 
     # ===== views =====
     "view.no_match_hint": {
