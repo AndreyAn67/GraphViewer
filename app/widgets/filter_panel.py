@@ -98,7 +98,9 @@ class FilterPanel(QWidget):
     def __init__(self, translator: Translator, parent=None) -> None:
         super().__init__(parent)
         self.setObjectName("FilterPanel")
-        self.setFixedWidth(264)
+        # Resizable via the host QSplitter. Only a minimum is clamped here —
+        # the upper bound is left to the splitter so the user can drag freely.
+        self.setMinimumWidth(200)
         self._i18n = translator
         self._library: Library | None = None
         # Section title labels keyed by catalog key, for retranslation.

@@ -54,20 +54,25 @@ class FreeView(QWidget):
         tl.addWidget(self._hint)
         outer.addWidget(toolbar)
 
-        inner = QHBoxLayout()
-        inner.setContentsMargins(0, 0, 0, 0)
-        inner.setSpacing(0)
-
         self.filter_panel = FilterPanel(self._i18n)
         self.filter_panel.set_library(library)
-        inner.addWidget(self.filter_panel)
 
         self._splitter = QSplitter(Qt.Orientation.Horizontal)
         self._splitter.setObjectName("FreeSplitter")
         self._splitter.setHandleWidth(4)
-        inner.addWidget(self._splitter, 1)
+        self._splitter.setChildrenCollapsible(False)
 
-        outer.addLayout(inner, 1)
+        self._outer_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self._outer_splitter.setObjectName("FilterSplitter")
+        self._outer_splitter.setHandleWidth(4)
+        self._outer_splitter.setChildrenCollapsible(False)
+        self._outer_splitter.addWidget(self.filter_panel)
+        self._outer_splitter.addWidget(self._splitter)
+        self._outer_splitter.setStretchFactor(0, 0)
+        self._outer_splitter.setStretchFactor(1, 1)
+        self._outer_splitter.setSizes([264, 1000])
+
+        outer.addWidget(self._outer_splitter, 1)
 
         self.btn_add.clicked.connect(self._add_card)
         self.filter_panel.applyRequested.connect(self._on_apply_current)

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QHBoxLayout, QWidget
+from PySide6.QtCore import Qt, Signal
+from PySide6.QtWidgets import QHBoxLayout, QSplitter, QWidget
 
 from app.core.filter_engine import resolve_single
 from app.core.labels import format_breadcrumb
@@ -27,10 +27,19 @@ class SingleView(QWidget):
 
         self.filter_panel = FilterPanel(self._i18n)
         self.filter_panel.set_library(library)
-        layout.addWidget(self.filter_panel)
 
         self.card = ImageCard(closable=False, translator=self._i18n)
-        layout.addWidget(self.card, 1)
+
+        self._splitter = QSplitter(Qt.Orientation.Horizontal)
+        self._splitter.setObjectName("FilterSplitter")
+        self._splitter.setHandleWidth(4)
+        self._splitter.setChildrenCollapsible(False)
+        self._splitter.addWidget(self.filter_panel)
+        self._splitter.addWidget(self.card)
+        self._splitter.setStretchFactor(0, 0)
+        self._splitter.setStretchFactor(1, 1)
+        self._splitter.setSizes([264, 1000])
+        layout.addWidget(self._splitter, 1)
 
         self.filter_panel.applyRequested.connect(self._on_apply)
         self.filter_panel.resetRequested.connect(self._on_reset)

@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QGridLayout,
-    QHBoxLayout,
+    QSplitter,
     QVBoxLayout,
     QWidget,
 )
@@ -54,22 +54,26 @@ class GridView(QWidget):
         h = QVBoxLayout(content)
         h.setContentsMargins(0, 0, 0, 0)
 
-        inner = QHBoxLayout()
-        inner.setContentsMargins(0, 0, 0, 0)
-        inner.setSpacing(0)
-
         self.filter_panel = FilterPanel(self._i18n)
         self.filter_panel.set_library(library)
-        inner.addWidget(self.filter_panel)
 
         self._grid_host = QWidget()
         self._grid_host.setObjectName("GridHost")
         self._grid = QGridLayout(self._grid_host)
         self._grid.setContentsMargins(12, 12, 12, 12)
         self._grid.setSpacing(8)
-        inner.addWidget(self._grid_host, 1)
 
-        h.addLayout(inner)
+        self._splitter = QSplitter(Qt.Orientation.Horizontal)
+        self._splitter.setObjectName("FilterSplitter")
+        self._splitter.setHandleWidth(4)
+        self._splitter.setChildrenCollapsible(False)
+        self._splitter.addWidget(self.filter_panel)
+        self._splitter.addWidget(self._grid_host)
+        self._splitter.setStretchFactor(0, 0)
+        self._splitter.setStretchFactor(1, 1)
+        self._splitter.setSizes([264, 1000])
+
+        h.addWidget(self._splitter)
         outer.addWidget(content, 1)
 
         self.preset.presetChanged.connect(self.set_grid)
