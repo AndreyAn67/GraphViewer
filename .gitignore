@@ -3,3 +3,7 @@ __pycache__/
 
 # vscode配置
 .vscode/
+
+# PyInstaller 打包产物（GraphViewer.spec 故意保留追踪，作为重建配方）
+build/
+dist/

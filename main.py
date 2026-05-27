@@ -10,7 +10,13 @@ from app.main_window import MainWindow
 from app.theme.theme_manager import ThemeManager
 
 
-PROJECT_ROOT = Path(__file__).resolve().parent
+# When frozen by PyInstaller, sys.executable is the .exe; the image library
+# lives in a `sources/pics/` folder shipped *next to* the exe so it stays
+# browsable/updatable. In a normal dev run, resolve relative to this file.
+if getattr(sys, "frozen", False):
+    PROJECT_ROOT = Path(sys.executable).resolve().parent
+else:
+    PROJECT_ROOT = Path(__file__).resolve().parent
 PICS_ROOT = PROJECT_ROOT / "sources" / "pics"
 
 
